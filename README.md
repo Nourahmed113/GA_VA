@@ -126,24 +126,6 @@ npm run dev
 - Backend API: http://localhost:8000
 - API Docs: http://localhost:8000/docs
 
-## 🎨 UI Features
-
-### GenArabia Branding
-- **Colors**: Light Blue (#33C3F0), Dark Blue (#1E3A8A), Purple (#9333EA)
-- **Logo**: 150px animated with glow effect
-- **Typography**: Inter + Cairo fonts
-- **No Emojis**: Professional icon design (except dialect flags)
-
-### Audio Player
-- Custom gradient play/pause button
-- Progress bar with GenArabia colors
-- Volume control
-- Download button with hover effects
-
-### Inference Time Display
-- Real-time tracking badge
-- Shows generation time in seconds
-- Gradient styled badge matching brand colors
 
 ## 🔑 Key Technologies
 
@@ -236,15 +218,6 @@ Edit `frontend/src/components/TTSGenerator.jsx`:
 - Default parameters
 - Available dialects
 
-## 🎯 Future Enhancements
-
-- [ ] Streaming audio generation
-- [ ] Batch processing
-- [ ] Additional Arabic dialects
-- [ ] Export to multiple formats (MP3, OGG)
-- [ ] User authentication
-- [ ] Save/load presets
-
 ## 📄 License
 
 This project uses the ChatterBox model which follows ResembleAI's licensing.
@@ -254,10 +227,6 @@ This project uses the ChatterBox model which follows ResembleAI's licensing.
 - **ResembleAI** - ChatterBox TTS model
 - **GenArabia AI** - Fine-tuned Arabic dialect models
 - **Google Fonts** - Inter & Cairo typography
-
-## 👥 Authors
-
-**Nour Ahmed** - [GitHub](https://github.com/Nourahmed113)
 
 ---
 
