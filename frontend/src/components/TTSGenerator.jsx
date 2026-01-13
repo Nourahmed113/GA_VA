@@ -27,6 +27,7 @@ function TTSGenerator() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [showAdvanced, setShowAdvanced] = useState(false)
+    const [inferenceTime, setInferenceTime] = useState(null)
     const audioRef = useRef(null)
 
     // Generation parameters
@@ -104,6 +105,12 @@ function TTSGenerator() {
                 }
             )
 
+            // Extract inference time from response headers
+            const inferenceTimeHeader = response.headers['x-inference-time']
+            if (inferenceTimeHeader) {
+                setInferenceTime(parseFloat(inferenceTimeHeader))
+            }
+
             // Create blob URL for audio
             const audioBlob = new Blob([response.data], { type: 'audio/wav' })
             const url = URL.createObjectURL(audioBlob)
@@ -121,7 +128,7 @@ function TTSGenerator() {
 
         const a = document.createElement('a')
         a.href = audioUrl
-        a.download = `chatterbox_${dialect}_${Date.now()}.wav`
+        a.download = `genarabia_${dialect}_${Date.now()}.wav`
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
@@ -292,7 +299,7 @@ function TTSGenerator() {
                         onClick={() => setUseReference(!useReference)}
                     >
                         <span className="toggle-checkbox">{useReference ? '☑' : '☐'}</span>
-                        🎤 Use Reference Audio (Voice Conditioning)
+                        Use Reference Audio (Voice Conditioning)
                     </button>
 
                     {useReference && (
@@ -307,12 +314,12 @@ function TTSGenerator() {
                                     className="file-input"
                                 />
                                 <label htmlFor="file-upload" className="file-upload-label">
-                                    📤 Click to upload WAV file
+                                    Click to upload WAV file
                                 </label>
                             </div>
                             {uploadedFile && (
                                 <div className="reference-selected">
-                                    <span className="reference-selected-label">✓ Uploaded:</span>
+                                    <span className="reference-selected-label">Uploaded:</span>
                                     <span className="reference-selected-text">{uploadedFile.name}</span>
                                     {uploadedFileUrl && (
                                         <audio controls src={uploadedFileUrl} className="reference-audio-preview" />
@@ -336,7 +343,6 @@ function TTSGenerator() {
                         </>
                     ) : (
                         <>
-                            <span className="btn-icon">🎤</span>
                             Generate Speech
                         </>
                     )}
@@ -345,7 +351,7 @@ function TTSGenerator() {
                 {/* Error Message */}
                 {error && (
                     <div className="error-message">
-                        <span className="error-icon">⚠️</span>
+                        <span className="error-icon">Error:</span>
                         {error}
                     </div>
                 )}
@@ -353,11 +359,19 @@ function TTSGenerator() {
                 {/* Audio Player */}
                 {audioUrl && !loading && (
                     <div className="audio-section">
-                        <h3 className="section-title">Generated Audio</h3>
+                        <div className="section-header">
+                            <h3 className="section-title">Generated Audio</h3>
+                            {inferenceTime && (
+                                <div className="inference-time-badge">
+                                    <span className="badge-label">Inference Time:</span>
+                                    <span className="badge-value">{inferenceTime.toFixed(2)}s</span>
+                                </div>
+                            )}
+                        </div>
                         <AudioPlayer
+                            ref={audioRef}
                             src={audioUrl}
                             onDownload={handleDownload}
-                            ref={audioRef}
                         />
                     </div>
                 )}

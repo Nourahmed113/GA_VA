@@ -1,41 +1,46 @@
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Color Palette - Modern & Vibrant */
-  --primary: #6366f1;
-  --primary-light: #818cf8;
-  --primary-dark: #4f46e5;
-  --secondary: #14b8a6;
-  --secondary-light: #5eead4;
-  --accent: #f59e0b;
-  --accent-light: #fbbf24;
-  
+  /* GenArabia Color Palette - From Logo */
+  --primary: #33C3F0;
+  /* Light Blue */
+  --primary-light: #5DD5F7;
+  /* Lighter Blue */
+  --primary-dark: #1E3A8A;
+  /* Dark Blue */
+  --secondary: #9333EA;
+  /* Purple (from logo G) */
+  --secondary-light: #A855F7;
+  --accent: #0EA5E9;
+  /* Sky Blue */
+  --accent-light: #38BDF8;
+
   /* Background Colors */
   --bg-dark: #0f172a;
   --bg-card: #1e293b;
   --bg-hover: #334155;
   --bg-input: #1a2332;
-  
+
   /* Text Colors */
   --text-primary: #f1f5f9;
   --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
-  
+
   /* Success/Error */
   --success: #10b981;
   --error: #ef4444;
-  
+
   /* Glassmorphism */
   --glass-bg: rgba(30, 41, 59, 0.7);
   --glass-border: rgba(148, 163, 184, 0.2);
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.4);
-  
+  --shadow-glow: 0 0 20px rgba(51, 195, 240, 0.4);
+
   /* Transitions */
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -68,27 +73,55 @@ body {
 
 /* Header */
 .app-header {
-  text-align: center;
   margin-bottom: 3rem;
   animation: fadeInDown 0.6s ease-out;
+  position: relative;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  position: relative;
+}
+
+.app-logo {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(51, 195, 240, 0.5));
+  animation: pulse 3s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 20px rgba(51, 195, 240, 0.5));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 30px rgba(147, 51, 234, 0.6));
+  }
+}
+
+.header-text {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
 }
 
 .app-title {
-  font-size: 3.5rem;
+  font-size: 3rem;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary-light) 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-}
-
-.icon {
-  font-size: 3rem;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .app-subtitle {
@@ -96,6 +129,7 @@ body {
   color: var(--text-secondary);
   font-weight: 300;
   font-family: 'Cairo', sans-serif;
+  margin: 0;
 }
 
 /* Tab Navigation */
@@ -166,6 +200,7 @@ body {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -177,6 +212,7 @@ body {
     opacity: 0;
     transform: translateY(-30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -203,18 +239,34 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .header-text {
+    position: static;
+    transform: none;
+  }
+
+  .app-logo {
+    width: 100px;
+    height: 100px;
+  }
+
   .app-title {
-    font-size: 2.5rem;
-  }
-  
-  .icon {
     font-size: 2rem;
+    white-space: normal;
   }
-  
+
+  .app-subtitle {
+    font-size: 1rem;
+  }
+
   .tab-container {
     flex-direction: column;
   }
-  
+
   .tab {
     width: 100%;
   }

@@ -313,7 +313,6 @@ function SampleComparison() {
                                 </>
                             ) : (
                                 <>
-                                    <span className="btn-icon">🔄</span>
                                     Generate TTS for Comparison
                                 </>
                             )}
@@ -322,7 +321,7 @@ function SampleComparison() {
                         {/* Error Message */}
                         {error && (
                             <div className="error-message">
-                                <span className="error-icon">⚠️</span>
+                                <span className="error-icon">Error:</span>
                                 {error}
                             </div>
                         )}
@@ -332,7 +331,6 @@ function SampleComparison() {
                             {/* Original Audio */}
                             <div className="audio-section">
                                 <h3 className="section-title">
-                                    <span className="title-icon">🎵</span>
                                     Original Training Sample
                                 </h3>
                                 {originalAudioUrl ? (
@@ -345,7 +343,6 @@ function SampleComparison() {
                             {/* Generated Audio */}
                             <div className="audio-section">
                                 <h3 className="section-title">
-                                    <span className="title-icon">🤖</span>
                                     Generated TTS
                                 </h3>
                                 {generatedAudioUrl ? (
@@ -363,7 +360,6 @@ function SampleComparison() {
                 {/* No Sample Selected */}
                 {!selectedSample && (
                     <div className="empty-state">
-                        <span className="empty-icon">🎧</span>
                         <p>Select a training sample to start comparing</p>
                     </div>
                 )}

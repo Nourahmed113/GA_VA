@@ -63,11 +63,11 @@ const AudioPlayer = forwardRef(({ src, onDownload }, ref) => {
 
             <div className="player-controls">
                 {/* Play/Pause Button */}
-                <button className="play-btn" onClick={togglePlay}>
+                <button className="play-btn" onClick={togglePlay} title={isPlaying ? "Pause" : "Play"}>
                     {isPlaying ? (
-                        <span className="icon">⏸️</span>
+                        <span className="btn-icon">❚❚</span>
                     ) : (
-                        <span className="icon">▶️</span>
+                        <span className="btn-icon">▶</span>
                     )}
                 </button>
 
@@ -87,7 +87,7 @@ const AudioPlayer = forwardRef(({ src, onDownload }, ref) => {
 
                 {/* Volume Control */}
                 <div className="volume-section">
-                    <span className="icon">🔊</span>
+                    <span className="volume-icon">🔊</span>
                     <input
                         type="range"
                         className="volume-bar"
@@ -102,7 +102,7 @@ const AudioPlayer = forwardRef(({ src, onDownload }, ref) => {
                 {/* Download Button */}
                 {onDownload && (
                     <button className="download-btn" onClick={onDownload} title="Download">
-                        <span className="icon">⬇️</span>
+                        <span className="btn-icon">⬇</span>
                     </button>
                 )}
             </div>

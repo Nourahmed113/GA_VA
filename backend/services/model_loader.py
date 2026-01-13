@@ -105,6 +105,7 @@ class ModelLoader:
             
             # Wrapper class doesn't have eval(), sub-models are already set to eval() in from_local
             
+
             # OPTIMIZATION: Convert T3 to FP16 (Half Precision)
             # DISABLED: User reported hallucinations/quality degradation with FP16.
             # Reverting to FP32 for stability and quality.
@@ -124,6 +125,16 @@ class ModelLoader:
             # except Exception as e:
             #     logger.warning(f"Optimization warning: Could not convert to FP16: {e}")
             #     logger.warning("Continuing with default precision (FP32)")
+
+            # OPTIMIZATION: Torch Compilation for faster inference (PyTorch 2.0+)
+            # Expected speedup: 10-20% without quality loss
+            try:
+                logger.info("🔧 Compiling T3 transformer for optimized inference...")
+                model.t3 = torch.compile(model.t3, mode="reduce-overhead")
+                logger.info("✅ T3 transformer compiled successfully")
+            except Exception as e:
+                logger.warning(f"⚠️  Could not compile T3: {e}")
+                logger.warning("Continuing without compilation (no performance impact)")
 
             self._models[dialect] = model
             logger.info(f"✅ Successfully loaded {dialect} model")

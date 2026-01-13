@@ -198,14 +198,46 @@
     }
 }
 
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
 .section-title {
     font-size: 1.25rem;
     font-weight: 600;
     color: var(--text-secondary);
-    margin-bottom: 1rem;
+    margin: 0;
+}
+
+.inference-time-badge {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, rgba(51, 195, 240, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%);
+    border: 1px solid var(--primary);
+    border-radius: 2rem;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.badge-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.badge-value {
+    font-size: 1rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 /* Advanced Settings */

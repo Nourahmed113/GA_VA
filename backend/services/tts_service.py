@@ -78,7 +78,12 @@ class TTSService:
             
             # Generate audio using ChatterBox with custom parameters
             logger.info(f"Generating audio with ChatterBox model...")
-            with torch.no_grad():
+            
+            import time
+            start_time = time.time()
+            
+            # OPTIMIZATION: Use inference_mode for better performance than no_grad
+            with torch.inference_mode():
                 # Prepare generation kwargs
                 gen_kwargs = {
                     "language_id": "ar",
@@ -96,6 +101,8 @@ class TTSService:
                 
                 wav = model.generate(processed_text, **gen_kwargs)
             
+            inference_time = time.time() - start_time
+            
             # Save audio
             if output_path is None:
                 import hashlib
@@ -105,9 +112,15 @@ class TTSService:
             # Save as WAV file using the model's sample rate
             self._save_audio(wav, output_path, sample_rate=model.sr)
             
+            audio_duration = wav.shape[-1] / model.sr
+            logger.info(f"Audio saved to: {output_path}")
             logger.info(f"Audio generated successfully: {output_path}")
-            logger.info(f"Duration: {wav.shape[-1] / model.sr:.2f}s")
-            return output_path
+            logger.info(f"Audio duration: {audio_duration:.2f}s")
+            logger.info(f"⏱️  Inference time: {inference_time:.2f}s")
+            logger.info(f"⚡ Real-time factor: {audio_duration/inference_time:.2f}x")
+            
+            # Return both path and inference time
+            return output_path, inference_time
             
         except Exception as e:
             logger.error(f"Error generating audio: {str(e)}")

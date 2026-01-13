@@ -10,11 +10,13 @@ function App() {
     <div className="app">
       {/* Header */}
       <header className="app-header">
-        <h1 className="app-title">
-          <span className="icon">🎙️</span>
-          ChatterBox TTS
-        </h1>
-        <p className="app-subtitle">Multi-Dialect Arabic Text-to-Speech</p>
+        <div className="header-content">
+          <img src="/genarabia-logo.png" alt="GenArabia" className="app-logo" />
+          <div className="header-text">
+            <h1 className="app-title">GenArabia Voice Agent</h1>
+            <p className="app-subtitle">Multi-Dialect Arabic Text-to-Speech</p>
+          </div>
+        </div>
       </header>
 
       {/* Tab Navigation */}
@@ -23,14 +25,12 @@ function App() {
           className={`tab ${activeTab === 'generate' ? 'active' : ''}`}
           onClick={() => setActiveTab('generate')}
         >
-          <span className="tab-icon">✨</span>
           Generate TTS
         </button>
         <button
           className={`tab ${activeTab === 'compare' ? 'active' : ''}`}
           onClick={() => setActiveTab('compare')}
         >
-          <span className="tab-icon">🎵</span>
           Compare Samples
         </button>
       </div>
@@ -43,7 +43,7 @@ function App() {
 
       {/* Footer */}
       <footer className="app-footer">
-        <p>Powered by ChatterBox • GenArabia AI</p>
+        <p>Powered by GenArabia AI</p>
       </footer>
     </div>
   )
