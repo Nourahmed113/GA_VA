@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import axios from 'axios'
 import './SampleComparison.css'
 import AudioPlayer from './AudioPlayer'
@@ -22,13 +22,13 @@ const DEFAULT_PARAMS = {
 
 function SampleComparison() {
     const [dialect, setDialect] = useState('egyptian')
-    const [samples, setSamples] = useState({})
-    const [selectedSample, setSelectedSample] = useState(null)
-    const [originalAudioUrl, setOriginalAudioUrl] = useState(null)
-    const [generatedAudioUrl, setGeneratedAudioUrl] = useState(null)
+    const [text, setText] = useState('')
+    const [audioUrl, setAudioUrl] = useState(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [showAdvanced, setShowAdvanced] = useState(false)
+    const [inferenceTime, setInferenceTime] = useState(null)
+    const audioRef = useRef(null)
 
     // Generation parameters
     const [temperature, setTemperature] = useState(DEFAULT_PARAMS.temperature)
@@ -36,50 +36,6 @@ function SampleComparison() {
     const [topP, setTopP] = useState(DEFAULT_PARAMS.top_p)
     const [minP, setMinP] = useState(DEFAULT_PARAMS.min_p)
     const [cfgWeight, setCfgWeight] = useState(DEFAULT_PARAMS.cfg_weight)
-
-    // Reference audio - default to true for comparison
-    const [useReference, setUseReference] = useState(true)
-
-    // Load samples on mount
-    useEffect(() => {
-        fetchSamples()
-    }, [])
-
-    // Reset selection when dialect changes
-    useEffect(() => {
-        setSelectedSample(null)
-        setOriginalAudioUrl(null)
-        setGeneratedAudioUrl(null)
-    }, [dialect])
-
-    const fetchSamples = async () => {
-        try {
-            const response = await axios.get(`${API_BASE}/api/samples`)
-            setSamples(response.data)
-        } catch (err) {
-            console.error('Error fetching samples:', err)
-            setError('Failed to load samples')
-        }
-    }
-
-    const handleSampleSelect = async (sample) => {
-        setSelectedSample(sample)
-        setGeneratedAudioUrl(null)
-
-        // Load original audio
-        try {
-            const response = await axios.get(
-                `${API_BASE}/api/samples/${dialect}/${sample.id}`,
-                { responseType: 'blob' }
-            )
-            const audioBlob = new Blob([response.data], { type: 'audio/wav' })
-            const url = URL.createObjectURL(audioBlob)
-            setOriginalAudioUrl(url)
-        } catch (err) {
-            console.error('Error loading original audio:', err)
-            setError('Failed to load original audio')
-        }
-    }
 
     const resetToDefaults = () => {
         setTemperature(DEFAULT_PARAMS.temperature)
@@ -89,45 +45,69 @@ function SampleComparison() {
         setCfgWeight(DEFAULT_PARAMS.cfg_weight)
     }
 
-    const handleGenerateComparison = async () => {
-        if (!selectedSample) return
+    const handleGenerate = async () => {
+        if (!text.trim()) {
+            setError('Please enter some text')
+            return
+        }
+
+
 
         setLoading(true)
         setError(null)
+        setAudioUrl(null)
 
         try {
             const response = await axios.post(
-                `${API_BASE}/api/compare`,
+                `${API_BASE}/api/generate`,
                 {
+                    text,
                     dialect,
-                    sample_id: selectedSample.id,
                     temperature,
                     repetition_penalty: repetitionPenalty,
                     top_p: topP,
                     min_p: minP,
-                    cfg_weight: cfgWeight,
-                    use_sample_as_reference: useReference
+                    cfg_weight: cfgWeight
                 },
-                { responseType: 'blob', timeout: 30000 }
+                {
+                    responseType: 'blob',
+                    timeout: 300000
+                }
             )
+
+            // Extract inference time from response headers
+            const inferenceTimeHeader = response.headers['x-inference-time']
+            if (inferenceTimeHeader) {
+                setInferenceTime(parseFloat(inferenceTimeHeader))
+            }
 
             const audioBlob = new Blob([response.data], { type: 'audio/wav' })
             const url = URL.createObjectURL(audioBlob)
-            setGeneratedAudioUrl(url)
+            setAudioUrl(url)
         } catch (err) {
-            console.error('Error generating comparison:', err)
-            setError('Failed to generate comparison audio')
+            console.error('Error generating audio:', err)
+            setError(err.response?.data?.detail || 'Failed to generate audio. Please try again.')
         } finally {
             setLoading(false)
         }
     }
 
-    const currentDialectSamples = samples[dialect] || []
+    const handleDownload = () => {
+        if (!audioUrl) return
+
+        const a = document.createElement('a')
+        a.href = audioUrl
+        a.download = `genarabia_${dialect}_${Date.now()}.wav`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+    }
+
 
     return (
         <div className="sample-comparison">
             <div className="comparison-card">
-                <h2 className="card-title">Compare Training Samples</h2>
+                <h2 className="card-title">Generate with Training Sample Voice</h2>
 
                 {/* Dialect Selector */}
                 <div className="form-group">
@@ -146,223 +126,184 @@ function SampleComparison() {
                     </div>
                 </div>
 
-                {/* Sample Selector */}
-                <div className="form-group">
-                    <label className="form-label">Select Training Sample</label>
-                    <div className="sample-list">
-                        {currentDialectSamples.map((sample) => (
-                            <button
-                                key={sample.id}
-                                className={`sample-btn ${selectedSample?.id === sample.id ? 'active' : ''}`}
-                                onClick={() => handleSampleSelect(sample)}
-                            >
-                                <div className="sample-info">
-                                    <span className="sample-text" dir="rtl">{sample.text}</span>
-                                    <span className="sample-desc">{sample.description}</span>
-                                </div>
-                            </button>
-                        ))}
+
+
+                {/* Text Input */}
+                <>
+                    <div className="form-group">
+                        <label className="form-label">
+                            Arabic Text
+                            <span className="char-count">{text.length} characters</span>
+                        </label>
+                        <textarea
+                            className="text-input"
+                            placeholder="اكتب النص هنا..."
+                            value={text}
+                            onChange={(e) => setText(e.target.value)}
+                            rows={5}
+                            dir="rtl"
+                        />
                     </div>
-                </div>
 
-                {/* Selected Sample Display */}
-                {selectedSample && (
-                    <>
-                        <div className="selected-sample-info">
-                            <h3 className="section-title">Selected Sample</h3>
-                            <p className="sample-text-large" dir="rtl">{selectedSample.text}</p>
-                            <p className="sample-desc">{selectedSample.description}</p>
-                        </div>
-
-                        {/* Advanced Settings */}
-                        <div className="advanced-section">
-                            <button
-                                className="advanced-toggle"
-                                onClick={() => setShowAdvanced(!showAdvanced)}
-                            >
-                                <span className="toggle-icon">{showAdvanced ? '▼' : '▶'}</span>
-                                Advanced Settings
-                            </button>
-
-                            {showAdvanced && (
-                                <div className="advanced-panel">
-                                    <div className="params-header">
-                                        <h4>Generation Parameters</h4>
-                                        <button className="reset-btn" onClick={resetToDefaults}>
-                                            Reset to Defaults
-                                        </button>
-                                    </div>
-
-                                    {/* Temperature */}
-                                    <div className="param-control">
-                                        <div className="param-header">
-                                            <label className="param-label">Temperature</label>
-                                            <span className="param-value">{temperature.toFixed(2)}</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="0.1"
-                                            max="1.5"
-                                            step="0.1"
-                                            value={temperature}
-                                            onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                                            className="param-slider"
-                                        />
-                                        <p className="param-desc">Controls randomness. Lower = more conservative, Higher = more creative</p>
-                                    </div>
-
-                                    {/* Repetition Penalty */}
-                                    <div className="param-control">
-                                        <div className="param-header">
-                                            <label className="param-label">Repetition Penalty</label>
-                                            <span className="param-value">{repetitionPenalty.toFixed(1)}</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="1.0"
-                                            max="3.0"
-                                            step="0.1"
-                                            value={repetitionPenalty}
-                                            onChange={(e) => setRepetitionPenalty(parseFloat(e.target.value))}
-                                            className="param-slider"
-                                        />
-                                        <p className="param-desc">Prevents repetition and hallucinations. Higher = less repetition</p>
-                                    </div>
-
-                                    {/* Top P */}
-                                    <div className="param-control">
-                                        <div className="param-header">
-                                            <label className="param-label">Top P (Nucleus Sampling)</label>
-                                            <span className="param-value">{topP.toFixed(2)}</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="0.1"
-                                            max="1.0"
-                                            step="0.05"
-                                            value={topP}
-                                            onChange={(e) => setTopP(parseFloat(e.target.value))}
-                                            className="param-slider"
-                                        />
-                                        <p className="param-desc">Cumulative probability threshold. Lower = more focused output</p>
-                                    </div>
-
-                                    {/* Min P */}
-                                    <div className="param-control">
-                                        <div className="param-header">
-                                            <label className="param-label">Min P</label>
-                                            <span className="param-value">{minP.toFixed(2)}</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="0.0"
-                                            max="0.2"
-                                            step="0.01"
-                                            value={minP}
-                                            onChange={(e) => setMinP(parseFloat(e.target.value))}
-                                            className="param-slider"
-                                        />
-                                        <p className="param-desc">Minimum probability threshold for token selection</p>
-                                    </div>
-
-                                    {/* CFG Weight */}
-                                    <div className="param-control">
-                                        <div className="param-header">
-                                            <label className="param-label">CFG Weight</label>
-                                            <span className="param-value">{cfgWeight.toFixed(1)}</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="0.0"
-                                            max="1.0"
-                                            step="0.1"
-                                            value={cfgWeight}
-                                            onChange={(e) => setCfgWeight(parseFloat(e.target.value))}
-                                            className="param-slider"
-                                        />
-                                        <p className="param-desc">Classifier-free guidance weight for style control</p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Reference Audio Option */}
-                        <div className="reference-section">
-                            <button
-                                className="reference-toggle"
-                                onClick={() => setUseReference(!useReference)}
-                            >
-                                <span className="toggle-checkbox">{useReference ? '☑' : '☐'}</span>
-                                Use selected sample as voice reference
-                            </button>
-                            <p className="reference-hint">
-                                When enabled, the model will try to match the voice characteristics of the selected sample
-                            </p>
-                        </div>
-
-                        {/* Generate Comparison Button */}
+                    {/* Advanced Settings */}
+                    <div className="advanced-section">
                         <button
-                            className="generate-btn"
-                            onClick={handleGenerateComparison}
-                            disabled={loading}
+                            className="advanced-toggle"
+                            onClick={() => setShowAdvanced(!showAdvanced)}
                         >
-                            {loading ? (
-                                <>
-                                    <span className="spinner"></span>
-                                    Generating...
-                                </>
-                            ) : (
-                                <>
-                                    Generate TTS for Comparison
-                                </>
-                            )}
+                            <span className="toggle-icon">{showAdvanced ? '▼' : '▶'}</span>
+                            Advanced Settings
                         </button>
 
-                        {/* Error Message */}
-                        {error && (
-                            <div className="error-message">
-                                <span className="error-icon">Error:</span>
-                                {error}
+                        {showAdvanced && (
+                            <div className="advanced-panel">
+                                <div className="params-header">
+                                    <h4>Generation Parameters</h4>
+                                    <button className="reset-btn" onClick={resetToDefaults}>
+                                        Reset to Defaults
+                                    </button>
+                                </div>
+
+                                {/* Temperature */}
+                                <div className="param-control">
+                                    <div className="param-header">
+                                        <label className="param-label">Temperature</label>
+                                        <span className="param-value">{temperature.toFixed(2)}</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0.1"
+                                        max="1.5"
+                                        step="0.1"
+                                        value={temperature}
+                                        onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                                        className="param-slider"
+                                    />
+                                    <p className="param-desc">Controls randomness. Lower = more conservative, Higher = more creative</p>
+                                </div>
+
+                                {/* Repetition Penalty */}
+                                <div className="param-control">
+                                    <div className="param-header">
+                                        <label className="param-label">Repetition Penalty</label>
+                                        <span className="param-value">{repetitionPenalty.toFixed(1)}</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="1.0"
+                                        max="3.0"
+                                        step="0.1"
+                                        value={repetitionPenalty}
+                                        onChange={(e) => setRepetitionPenalty(parseFloat(e.target.value))}
+                                        className="param-slider"
+                                    />
+                                    <p className="param-desc">Prevents repetition and hallucinations. Higher = less repetition</p>
+                                </div>
+
+                                {/* Top P */}
+                                <div className="param-control">
+                                    <div className="param-header">
+                                        <label className="param-label">Top P (Nucleus Sampling)</label>
+                                        <span className="param-value">{topP.toFixed(2)}</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0.1"
+                                        max="1.0"
+                                        step="0.05"
+                                        value={topP}
+                                        onChange={(e) => setTopP(parseFloat(e.target.value))}
+                                        className="param-slider"
+                                    />
+                                    <p className="param-desc">Cumulative probability threshold. Lower = more focused output</p>
+                                </div>
+
+                                {/* Min P */}
+                                <div className="param-control">
+                                    <div className="param-header">
+                                        <label className="param-label">Min P</label>
+                                        <span className="param-value">{minP.toFixed(2)}</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0.0"
+                                        max="0.2"
+                                        step="0.01"
+                                        value={minP}
+                                        onChange={(e) => setMinP(parseFloat(e.target.value))}
+                                        className="param-slider"
+                                    />
+                                    <p className="param-desc">Minimum probability threshold for token selection</p>
+                                </div>
+
+                                {/* CFG Weight */}
+                                <div className="param-control">
+                                    <div className="param-header">
+                                        <label className="param-label">CFG Weight</label>
+                                        <span className="param-value">{cfgWeight.toFixed(1)}</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0.0"
+                                        max="1.0"
+                                        step="0.1"
+                                        value={cfgWeight}
+                                        onChange={(e) => setCfgWeight(parseFloat(e.target.value))}
+                                        className="param-slider"
+                                    />
+                                    <p className="param-desc">Classifier-free guidance weight for style control</p>
+                                </div>
                             </div>
                         )}
+                    </div>
 
-                        {/* Comparison View */}
-                        <div className="comparison-grid">
-                            {/* Original Audio */}
-                            <div className="audio-section">
-                                <h3 className="section-title">
-                                    Original Training Sample
-                                </h3>
-                                {originalAudioUrl ? (
-                                    <AudioPlayer src={originalAudioUrl} />
-                                ) : (
-                                    <div className="loading-placeholder">Loading...</div>
-                                )}
-                            </div>
 
-                            {/* Generated Audio */}
-                            <div className="audio-section">
-                                <h3 className="section-title">
-                                    Generated TTS
-                                </h3>
-                                {generatedAudioUrl ? (
-                                    <AudioPlayer src={generatedAudioUrl} />
-                                ) : (
-                                    <div className="placeholder">
-                                        Click "Generate TTS" to compare
+                    {/* Generate Button */}
+                    <button
+                        className="generate-btn"
+                        onClick={handleGenerate}
+                        disabled={loading || !text.trim()}
+                    >
+                        {loading ? (
+                            <>
+                                <span className="spinner"></span>
+                                Generating...
+                            </>
+                        ) : (
+                            <>
+                                Generate Speech
+                            </>
+                        )}
+                    </button>
+
+                    {/* Error Message */}
+                    {error && (
+                        <div className="error-message">
+                            <span className="error-icon">Error:</span>
+                            {error}
+                        </div>
+                    )}
+
+                    {/* Audio Player */}
+                    {audioUrl && !loading && (
+                        <div className="audio-section">
+                            <div className="section-header">
+                                <h3 className="section-title">Generated Audio</h3>
+                                {inferenceTime && (
+                                    <div className="inference-time-badge">
+                                        <span className="badge-label">Inference Time:</span>
+                                        <span className="badge-value">{inferenceTime.toFixed(2)}s</span>
                                     </div>
                                 )}
                             </div>
+                            <AudioPlayer
+                                ref={audioRef}
+                                src={audioUrl}
+                                onDownload={handleDownload}
+                            />
                         </div>
-                    </>
-                )}
-
-                {/* No Sample Selected */}
-                {!selectedSample && (
-                    <div className="empty-state">
-                        <p>Select a training sample to start comparing</p>
-                    </div>
-                )}
+                    )}
+                </>
             </div>
         </div>
     )

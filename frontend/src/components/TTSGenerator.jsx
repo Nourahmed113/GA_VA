@@ -30,6 +30,12 @@ function TTSGenerator() {
     const [inferenceTime, setInferenceTime] = useState(null)
     const audioRef = useRef(null)
 
+    // Training samples state
+    const [samples, setSamples] = useState({})
+    const [selectedSample, setSelectedSample] = useState('')
+    const [sampleAudioUrl, setSampleAudioUrl] = useState(null)
+
+
     // Generation parameters
     const [temperature, setTemperature] = useState(DEFAULT_PARAMS.temperature)
     const [repetitionPenalty, setRepetitionPenalty] = useState(DEFAULT_PARAMS.repetition_penalty)
@@ -142,6 +148,46 @@ function TTSGenerator() {
         setCfgWeight(DEFAULT_PARAMS.cfg_weight)
     }
 
+    // Fetch training samples on mount
+    useEffect(() => {
+        const fetchSamples = async () => {
+            try {
+                const response = await axios.get(`${API_BASE}/api/samples`)
+                setSamples(response.data)
+            } catch (err) {
+                console.error('Error fetching samples:', err)
+            }
+        }
+        fetchSamples()
+    }, [])
+
+    // Fetch sample audio when selection changes
+    const handleSampleChange = async (sampleId) => {
+        setSelectedSample(sampleId)
+        setSampleAudioUrl(null)
+
+        if (!sampleId) return
+
+        try {
+            const response = await axios.get(
+                `${API_BASE}/api/samples/${dialect}/${sampleId}`,
+                { responseType: 'blob' }
+            )
+            const audioBlob = new Blob([response.data], { type: 'audio/wav' })
+            const url = URL.createObjectURL(audioBlob)
+            setSampleAudioUrl(url)
+        } catch (err) {
+            console.error('Error fetching sample audio:', err)
+        }
+    }
+
+    // Reset sample selection when dialect changes
+    useEffect(() => {
+        setSelectedSample('')
+        setSampleAudioUrl(null)
+    }, [dialect])
+
+
     return (
         <div className="tts-generator">
             <div className="generator-card">
@@ -179,6 +225,27 @@ function TTSGenerator() {
                         dir="rtl"
                     />
                 </div>
+
+                {/* Training Sample Selector */}
+                {samples[dialect] && samples[dialect].length > 0 && (
+                    <div className="form-group">
+                        <label className="form-label">Training Sample (Optional - for comparison)</label>
+                        <select
+                            className="sample-select"
+                            value={selectedSample}
+                            onChange={(e) => handleSampleChange(e.target.value)}
+                        >
+                            <option value="">None - No comparison</option>
+                            {samples[dialect].map((sample) => (
+                                <option key={sample.id} value={sample.id}>
+                                    {sample.text}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
+
 
                 {/* Advanced Settings */}
                 <div className="advanced-section">
@@ -356,11 +423,11 @@ function TTSGenerator() {
                     </div>
                 )}
 
-                {/* Audio Player */}
+                {/* Audio Results - Side by Side Comparison */}
                 {audioUrl && !loading && (
                     <div className="audio-section">
                         <div className="section-header">
-                            <h3 className="section-title">Generated Audio</h3>
+                            <h3 className="section-title">Audio Results</h3>
                             {inferenceTime && (
                                 <div className="inference-time-badge">
                                     <span className="badge-label">Inference Time:</span>
@@ -368,13 +435,29 @@ function TTSGenerator() {
                                 </div>
                             )}
                         </div>
-                        <AudioPlayer
-                            ref={audioRef}
-                            src={audioUrl}
-                            onDownload={handleDownload}
-                        />
+
+                        <div className="audio-comparison">
+                            {/* Training Sample Audio Column */}
+                            {sampleAudioUrl && (
+                                <div className="audio-column">
+                                    <h4 className="audio-column-title">Training Sample</h4>
+                                    <AudioPlayer src={sampleAudioUrl} />
+                                </div>
+                            )}
+
+                            {/* Generated Audio Column */}
+                            <div className={`audio-column ${!sampleAudioUrl ? 'full-width' : ''}`}>
+                                <h4 className="audio-column-title">Generated Audio</h4>
+                                <AudioPlayer
+                                    ref={audioRef}
+                                    src={audioUrl}
+                                    onDownload={handleDownload}
+                                />
+                            </div>
+                        </div>
                     </div>
                 )}
+
             </div>
         </div>
     )

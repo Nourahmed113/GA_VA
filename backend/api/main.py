@@ -271,16 +271,16 @@ async def get_sample_audio(dialect: str, sample_id: str):
 @app.post("/api/compare")
 async def compare_with_sample(request: CompareRequest):
     """
-    Generate TTS for the same text as a training sample for comparison
+    Generate TTS using a training sample as voice reference
     
     Args:
-        request: CompareRequest with dialect, sample_id, generation parameters, and reference option
+        request: CompareRequest with dialect, sample_id, optional custom text, generation parameters, and reference option
         
     Returns:
         Generated audio file (WAV format)
     """
     try:
-        # Load metadata to get sample text
+        # Load metadata to get sample info
         metadata = load_metadata()
         
         if request.dialect not in metadata:
@@ -291,15 +291,18 @@ async def compare_with_sample(request: CompareRequest):
         if not sample:
             raise HTTPException(status_code=404, detail=f"Sample '{request.sample_id}' not found")
         
+        # Use custom text if provided, otherwise use sample's text
+        text_to_generate = request.text if request.text else sample['text']
+        
         # Use selected sample as reference audio if requested
         reference_audio_path = None
         if request.use_sample_as_reference:
             reference_audio_path = TRAINING_SAMPLES_DIR / request.dialect / sample['filename']
             logger.info(f"Using sample audio as reference: {reference_audio_path}")
         
-        # Generate TTS using the sample text with custom parameters and reference
-        audio_path = tts_service.generate_audio(
-            text=sample['text'],
+        # Generate TTS using custom or sample text with parameters and reference
+        audio_path, inference_time = tts_service.generate_audio(
+            text=text_to_generate,
             dialect=request.dialect,
             temperature=request.temperature,
             repetition_penalty=request.repetition_penalty,
@@ -312,8 +315,15 @@ async def compare_with_sample(request: CompareRequest):
         return FileResponse(
             path=audio_path,
             media_type="audio/wav",
-            filename=f"{request.dialect}_{request.sample_id}_generated.wav"
+            filename=f"{request.dialect}_{request.sample_id}_generated.wav",
+            headers={"X-Inference-Time": str(inference_time)}
         )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in comparison: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating comparison: {str(e)}")
         
     except HTTPException:
         raise

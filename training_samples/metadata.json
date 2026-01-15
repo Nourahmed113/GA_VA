@@ -2,27 +2,27 @@
   "egyptian": [
     {
       "id": "sample1",
-      "text": "مرحبا بك في مصر",
-      "filename": "sample1.wav",
-      "description": "Egyptian dialect greeting"
+      "text": "Sample 1",
+      "filename": "Egyptian Reference Audio.wav",
+      "description": "Egyptian dialect reference audio"
     },
     {
       "id": "sample2",
-      "text": "إزيك يا صديقي",
-      "filename": "sample2.wav",
+      "text": "Sample 2",
+      "filename": "segment_050_chunk_0.0_6.0_SPEAKER_00.wav",
       "description": "Egyptian dialect casual greeting"
     }
   ],
   "emirates": [
     {
       "id": "sample1",
-      "text": "مرحبا فيك",
+      "text": "Sample 1",
       "filename": "Emarites training audio.wav",
       "description": "Emirati dialect greeting"
     },
     {
       "id": "sample2",
-      "text": "شحالك يا أخوي",
+      "text": "Sample 2",
       "filename": "Emarites training audio 2.wav",
       "description": "Emirati dialect casual greeting"
     }
@@ -30,28 +30,28 @@
   "ksa": [
     {
       "id": "sample1",
-      "text": "أهلا وسهلا",
-      "filename": "sample1.wav",
+      "text": "Sample 1",
+      "filename": "segment_1.wav",
       "description": "Saudi dialect greeting"
     },
     {
       "id": "sample2",
-      "text": "كيف حالك يا عيوني",
-      "filename": "sample2.wav",
+      "text": "Sample 2",
+      "filename": "segment_669.wav",
       "description": "Saudi dialect casual greeting"
     }
   ],
   "kuwaiti": [
     {
       "id": "sample1",
-      "text": "هلا والله",
-      "filename": "sample1.wav",
+      "text": "Sample 1",
+      "filename": "ku sample.wav",
       "description": "Kuwaiti dialect greeting"
     },
     {
       "id": "sample2",
-      "text": "شلونك يا ربعي",
-      "filename": "sample2.wav",
+      "text": "Sample 2",
+      "filename": "segment_002.wav",
       "description": "Kuwaiti dialect casual greeting"
     }
   ]

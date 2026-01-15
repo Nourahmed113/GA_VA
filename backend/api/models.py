@@ -51,6 +51,9 @@ class CompareRequest(BaseModel):
     dialect: str = Field(..., description="Dialect to use")
     sample_id: str = Field(..., description="ID of the training sample")
     
+    # Optional custom text - if not provided, use sample's text
+    text: Optional[str] = Field(None, description="Custom text to generate (if not provided, uses sample's text)")
+    
     # Generation parameters (optional, with defaults)
     temperature: Optional[float] = Field(0.8, description="Controls randomness")
     repetition_penalty: Optional[float] = Field(2.0, description="Prevents repetition")

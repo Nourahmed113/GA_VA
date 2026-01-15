@@ -1,11 +1,7 @@
-import { useState } from 'react'
 import './App.css'
 import TTSGenerator from './components/TTSGenerator'
-import SampleComparison from './components/SampleComparison'
 
 function App() {
-  const [activeTab, setActiveTab] = useState('generate')
-
   return (
     <div className="app">
       {/* Header */}
@@ -19,26 +15,9 @@ function App() {
         </div>
       </header>
 
-      {/* Tab Navigation */}
-      <div className="tab-container">
-        <button
-          className={`tab ${activeTab === 'generate' ? 'active' : ''}`}
-          onClick={() => setActiveTab('generate')}
-        >
-          Generate TTS
-        </button>
-        <button
-          className={`tab ${activeTab === 'compare' ? 'active' : ''}`}
-          onClick={() => setActiveTab('compare')}
-        >
-          Compare Samples
-        </button>
-      </div>
-
-      {/* Tab Content */}
+      {/* Main Content */}
       <main className="tab-content">
-        {activeTab === 'generate' && <TTSGenerator />}
-        {activeTab === 'compare' && <SampleComparison />}
+        <TTSGenerator />
       </main>
 
       {/* Footer */}
