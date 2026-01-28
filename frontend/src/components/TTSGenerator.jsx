@@ -1,9 +1,8 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import axios from 'axios'
 import './TTSGenerator.css'
 import AudioPlayer from './AudioPlayer'
-
-const API_BASE = 'http://localhost:8000'
+import API_CONFIG from '../config'
 
 const DIALECTS = [
     { value: 'egyptian', label: 'Egyptian (مصري)', flag: '🇪🇬' },
@@ -12,7 +11,8 @@ const DIALECTS = [
     { value: 'kuwaiti', label: 'Kuwaiti (كويتي)', flag: '🇰🇼' }
 ]
 
-const DEFAULT_PARAMS = {
+// Hardcoded generation parameters (not shown in UI)
+const GENERATION_PARAMS = {
     temperature: 0.8,
     repetition_penalty: 2.0,
     top_p: 1.0,
@@ -20,67 +20,17 @@ const DEFAULT_PARAMS = {
     cfg_weight: 0.5
 }
 
+// API endpoint - using Modal backend
+const getGenerateEndpoint = () => API_CONFIG.MODAL_ENDPOINTS.GENERATE
+
 function TTSGenerator() {
-    const [dialect, setDialect] = useState('emirates')  // Changed to emirates (only model available)
+    const [dialect, setDialect] = useState('egyptian')
     const [text, setText] = useState('')
     const [audioUrl, setAudioUrl] = useState(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
-    const [showAdvanced, setShowAdvanced] = useState(false)
     const [inferenceTime, setInferenceTime] = useState(null)
     const audioRef = useRef(null)
-
-    // Training samples state
-    const [samples, setSamples] = useState({})
-    const [selectedSample, setSelectedSample] = useState('')
-    const [sampleAudioUrl, setSampleAudioUrl] = useState(null)
-
-
-    // Generation parameters
-    const [temperature, setTemperature] = useState(DEFAULT_PARAMS.temperature)
-    const [repetitionPenalty, setRepetitionPenalty] = useState(DEFAULT_PARAMS.repetition_penalty)
-    const [topP, setTopP] = useState(DEFAULT_PARAMS.top_p)
-    const [minP, setMinP] = useState(DEFAULT_PARAMS.min_p)
-    const [cfgWeight, setCfgWeight] = useState(DEFAULT_PARAMS.cfg_weight)
-
-    // Reference audio state
-    const [useReference, setUseReference] = useState(false)
-    const [uploadedFile, setUploadedFile] = useState(null)
-    const [uploadedFileName, setUploadedFileName] = useState(null)
-    const [uploadedFileUrl, setUploadedFileUrl] = useState(null)
-
-    const handleFileUpload = async (event) => {
-        const file = event.target.files[0]
-        if (!file) return
-
-        // Check if it's a WAV file by extension or MIME type
-        const isWav = file.name.toLowerCase().endsWith('.wav') ||
-            file.type.includes('wav') ||
-            file.type === 'audio/x-wav' ||
-            file.type === 'audio/wave'
-
-        if (isWav) {
-            try {
-                // Upload to backend
-                const formData = new FormData()
-                formData.append('file', file)
-
-                const response = await axios.post(`${API_BASE}/api/upload-reference`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                })
-
-                setUploadedFile(file)
-                setUploadedFileName(response.data.filename)
-                const url = URL.createObjectURL(file)
-                setUploadedFileUrl(url)
-                setError(null)
-            } catch (err) {
-                setError(`Error uploading file: ${err.message}`)
-            }
-        } else {
-            setError('Please upload a WAV file')
-        }
-    }
 
     const handleGenerate = async () => {
         if (!text.trim()) {
@@ -91,23 +41,19 @@ function TTSGenerator() {
         setLoading(true)
         setError(null)
         setAudioUrl(null)
+        setInferenceTime(null)
 
         try {
             const response = await axios.post(
-                `${API_BASE}/api/generate`,
+                getGenerateEndpoint(),
                 {
                     text,
                     dialect,
-                    temperature,
-                    repetition_penalty: repetitionPenalty,
-                    top_p: topP,
-                    min_p: minP,
-                    cfg_weight: cfgWeight,
-                    reference_audio_file: uploadedFileName
+                    ...GENERATION_PARAMS
                 },
                 {
                     responseType: 'blob',
-                    timeout: 300000 // 5 minutes timeout
+                    timeout: 120000 // 2 minutes timeout
                 }
             )
 
@@ -139,53 +85,6 @@ function TTSGenerator() {
         a.click()
         document.body.removeChild(a)
     }
-
-    const resetToDefaults = () => {
-        setTemperature(DEFAULT_PARAMS.temperature)
-        setRepetitionPenalty(DEFAULT_PARAMS.repetition_penalty)
-        setTopP(DEFAULT_PARAMS.top_p)
-        setMinP(DEFAULT_PARAMS.min_p)
-        setCfgWeight(DEFAULT_PARAMS.cfg_weight)
-    }
-
-    // Fetch training samples on mount
-    useEffect(() => {
-        const fetchSamples = async () => {
-            try {
-                const response = await axios.get(`${API_BASE}/api/samples`)
-                setSamples(response.data)
-            } catch (err) {
-                console.error('Error fetching samples:', err)
-            }
-        }
-        fetchSamples()
-    }, [])
-
-    // Fetch sample audio when selection changes
-    const handleSampleChange = async (sampleId) => {
-        setSelectedSample(sampleId)
-        setSampleAudioUrl(null)
-
-        if (!sampleId) return
-
-        try {
-            const response = await axios.get(
-                `${API_BASE}/api/samples/${dialect}/${sampleId}`,
-                { responseType: 'blob' }
-            )
-            const audioBlob = new Blob([response.data], { type: 'audio/wav' })
-            const url = URL.createObjectURL(audioBlob)
-            setSampleAudioUrl(url)
-        } catch (err) {
-            console.error('Error fetching sample audio:', err)
-        }
-    }
-
-    // Reset sample selection when dialect changes
-    useEffect(() => {
-        setSelectedSample('')
-        setSampleAudioUrl(null)
-    }, [dialect])
 
 
     return (
@@ -226,177 +125,6 @@ function TTSGenerator() {
                     />
                 </div>
 
-                {/* Training Sample Selector */}
-                {samples[dialect] && samples[dialect].length > 0 && (
-                    <div className="form-group">
-                        <label className="form-label">Training Sample (Optional - for comparison)</label>
-                        <select
-                            className="sample-select"
-                            value={selectedSample}
-                            onChange={(e) => handleSampleChange(e.target.value)}
-                        >
-                            <option value="">None - No comparison</option>
-                            {samples[dialect].map((sample) => (
-                                <option key={sample.id} value={sample.id}>
-                                    {sample.text}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                )}
-
-
-
-                {/* Advanced Settings */}
-                <div className="advanced-section">
-                    <button
-                        className="advanced-toggle"
-                        onClick={() => setShowAdvanced(!showAdvanced)}
-                    >
-                        <span className="toggle-icon">{showAdvanced ? '▼' : '▶'}</span>
-                        Advanced Settings
-                    </button>
-
-                    {showAdvanced && (
-                        <div className="advanced-panel">
-                            <div className="params-header">
-                                <h4>Generation Parameters</h4>
-                                <button className="reset-btn" onClick={resetToDefaults}>
-                                    Reset to Defaults
-                                </button>
-                            </div>
-
-                            {/* Temperature */}
-                            <div className="param-control">
-                                <div className="param-header">
-                                    <label className="param-label">Temperature</label>
-                                    <span className="param-value">{temperature.toFixed(2)}</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="0.1"
-                                    max="1.5"
-                                    step="0.1"
-                                    value={temperature}
-                                    onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                                    className="param-slider"
-                                />
-                                <p className="param-desc">Controls randomness. Lower = more conservative, Higher = more creative</p>
-                            </div>
-
-                            {/* Repetition Penalty */}
-                            <div className="param-control">
-                                <div className="param-header">
-                                    <label className="param-label">Repetition Penalty</label>
-                                    <span className="param-value">{repetitionPenalty.toFixed(1)}</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="1.0"
-                                    max="3.0"
-                                    step="0.1"
-                                    value={repetitionPenalty}
-                                    onChange={(e) => setRepetitionPenalty(parseFloat(e.target.value))}
-                                    className="param-slider"
-                                />
-                                <p className="param-desc">Prevents repetition and hallucinations. Higher = less repetition</p>
-                            </div>
-
-                            {/* Top P */}
-                            <div className="param-control">
-                                <div className="param-header">
-                                    <label className="param-label">Top P (Nucleus Sampling)</label>
-                                    <span className="param-value">{topP.toFixed(2)}</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="0.1"
-                                    max="1.0"
-                                    step="0.05"
-                                    value={topP}
-                                    onChange={(e) => setTopP(parseFloat(e.target.value))}
-                                    className="param-slider"
-                                />
-                                <p className="param-desc">Cumulative probability threshold. Lower = more focused output</p>
-                            </div>
-
-                            {/* Min P */}
-                            <div className="param-control">
-                                <div className="param-header">
-                                    <label className="param-label">Min P</label>
-                                    <span className="param-value">{minP.toFixed(2)}</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="0.0"
-                                    max="0.2"
-                                    step="0.01"
-                                    value={minP}
-                                    onChange={(e) => setMinP(parseFloat(e.target.value))}
-                                    className="param-slider"
-                                />
-                                <p className="param-desc">Minimum probability threshold for token selection</p>
-                            </div>
-
-                            {/* CFG Weight */}
-                            <div className="param-control">
-                                <div className="param-header">
-                                    <label className="param-label">CFG Weight</label>
-                                    <span className="param-value">{cfgWeight.toFixed(1)}</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="0.0"
-                                    max="1.0"
-                                    step="0.1"
-                                    value={cfgWeight}
-                                    onChange={(e) => setCfgWeight(parseFloat(e.target.value))}
-                                    className="param-slider"
-                                />
-                                <p className="param-desc">Classifier-free guidance weight for style control</p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Reference Audio Section */}
-                <div className="reference-section">
-                    <button
-                        className="reference-toggle"
-                        onClick={() => setUseReference(!useReference)}
-                    >
-                        <span className="toggle-checkbox">{useReference ? '☑' : '☐'}</span>
-                        Use Reference Audio (Voice Conditioning)
-                    </button>
-
-                    {useReference && (
-                        <div className="reference-panel">
-                            <label className="reference-label">Upload Reference Audio (WAV file):</label>
-                            <div className="file-upload-zone">
-                                <input
-                                    type="file"
-                                    accept=".wav,audio/wav"
-                                    onChange={handleFileUpload}
-                                    id="file-upload"
-                                    className="file-input"
-                                />
-                                <label htmlFor="file-upload" className="file-upload-label">
-                                    Click to upload WAV file
-                                </label>
-                            </div>
-                            {uploadedFile && (
-                                <div className="reference-selected">
-                                    <span className="reference-selected-label">Uploaded:</span>
-                                    <span className="reference-selected-text">{uploadedFile.name}</span>
-                                    {uploadedFileUrl && (
-                                        <audio controls src={uploadedFileUrl} className="reference-audio-preview" />
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-
                 {/* Generate Button */}
                 <button
                     className="generate-btn"
@@ -423,11 +151,11 @@ function TTSGenerator() {
                     </div>
                 )}
 
-                {/* Audio Results - Side by Side Comparison */}
+                {/* Audio Player */}
                 {audioUrl && !loading && (
                     <div className="audio-section">
                         <div className="section-header">
-                            <h3 className="section-title">Audio Results</h3>
+                            <h3 className="section-title">Generated Audio</h3>
                             {inferenceTime && (
                                 <div className="inference-time-badge">
                                     <span className="badge-label">Inference Time:</span>
@@ -435,26 +163,11 @@ function TTSGenerator() {
                                 </div>
                             )}
                         </div>
-
-                        <div className="audio-comparison">
-                            {/* Training Sample Audio Column */}
-                            {sampleAudioUrl && (
-                                <div className="audio-column">
-                                    <h4 className="audio-column-title">Training Sample</h4>
-                                    <AudioPlayer src={sampleAudioUrl} />
-                                </div>
-                            )}
-
-                            {/* Generated Audio Column */}
-                            <div className={`audio-column ${!sampleAudioUrl ? 'full-width' : ''}`}>
-                                <h4 className="audio-column-title">Generated Audio</h4>
-                                <AudioPlayer
-                                    ref={audioRef}
-                                    src={audioUrl}
-                                    onDownload={handleDownload}
-                                />
-                            </div>
-                        </div>
+                        <AudioPlayer
+                            ref={audioRef}
+                            src={audioUrl}
+                            onDownload={handleDownload}
+                        />
                     </div>
                 )}
 
